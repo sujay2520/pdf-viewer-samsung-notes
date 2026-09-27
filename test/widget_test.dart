@@ -19,9 +19,9 @@ void main() {
     });
   });
 
-  group('Samsung Notes Model Tests', () {
-    test('SamsungNote serializes and deserializes correctly', () {
-      final note = SamsungNote(
+  group('Note Document Model Tests', () {
+    test('NoteDocument serializes and deserializes correctly', () {
+      final note = NoteDocument(
         title: 'Meeting Notes',
         folder: 'Work',
         isFavorite: true,
@@ -35,7 +35,7 @@ void main() {
       );
 
       final json = note.toJson();
-      final revived = SamsungNote.fromJson(json);
+      final revived = NoteDocument.fromJson(json);
 
       expect(revived.title, equals('Meeting Notes'));
       expect(revived.folder, equals('Work'));

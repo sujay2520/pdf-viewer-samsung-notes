@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../models/annotation_model.dart';
 
-class SamsungToolsBar extends StatelessWidget {
+class NoteToolsBar extends StatelessWidget {
+  final bool isTypingMode;
   final DrawingTool activeTool;
   final ShapeType activeShape;
   final Color activeColor;
   final double strokeWidth;
   final bool canUndo;
   final bool canRedo;
+  final VoidCallback onToggleTypingMode;
   final ValueChanged<DrawingTool> onToolSelected;
   final ValueChanged<ShapeType> onShapeSelected;
   final ValueChanged<Color> onColorChanged;
@@ -17,14 +19,16 @@ class SamsungToolsBar extends StatelessWidget {
   final VoidCallback onRedo;
   final VoidCallback onClear;
 
-  const SamsungToolsBar({
+  const NoteToolsBar({
     super.key,
+    this.isTypingMode = false,
     required this.activeTool,
     required this.activeShape,
     required this.activeColor,
     required this.strokeWidth,
     required this.canUndo,
     required this.canRedo,
+    required this.onToggleTypingMode,
     required this.onToolSelected,
     required this.onShapeSelected,
     required this.onColorChanged,
@@ -62,19 +66,19 @@ class SamsungToolsBar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. Pan / Hand tool
-              _buildToolButton(
-                tool: DrawingTool.select,
-                icon: Icons.pan_tool_outlined,
-                tooltip: 'Pan / Navigate',
-                theme: theme,
+              // 1. Text / Typing Mode Toggle (First-class typing on lines)
+              _buildTypeModeButton(theme),
+
+              const SizedBox(
+                height: 22,
+                child: VerticalDivider(width: 14, thickness: 1),
               ),
 
               // 2. Ballpoint Pen
               _buildToolButton(
                 tool: DrawingTool.pen,
                 icon: Icons.edit,
-                tooltip: 'Ballpoint Pen',
+                tooltip: 'Pen / Freehand Draw',
                 theme: theme,
               ),
 
@@ -82,7 +86,7 @@ class SamsungToolsBar extends StatelessWidget {
               _buildToolButton(
                 tool: DrawingTool.fountainPen,
                 icon: Icons.draw_outlined,
-                tooltip: 'Fountain / Calligraphy Pen',
+                tooltip: 'Calligraphy Pen',
                 theme: theme,
               ),
 
@@ -97,15 +101,7 @@ class SamsungToolsBar extends StatelessWidget {
               // 5. Shapes menu
               _buildShapeMenuButton(context, theme),
 
-              // 6. Text Note Tool
-              _buildToolButton(
-                tool: DrawingTool.text,
-                icon: Icons.text_fields,
-                tooltip: 'Insert Text Note',
-                theme: theme,
-              ),
-
-              // 7. Eraser
+              // 6. Eraser
               _buildToolButton(
                 tool: DrawingTool.eraser,
                 icon: Icons.auto_fix_normal_outlined,
@@ -118,7 +114,7 @@ class SamsungToolsBar extends StatelessWidget {
                 child: VerticalDivider(width: 14, thickness: 1),
               ),
 
-              // 8. Active Color & Palette button
+              // 7. Active Color & Palette button
               GestureDetector(
                 onTap: () => _showColorPickerDialog(context),
                 child: Container(
@@ -143,7 +139,7 @@ class SamsungToolsBar extends StatelessWidget {
               ),
               const SizedBox(width: 6),
 
-              // 9. Stroke Width Slider Popover
+              // 8. Stroke Width Slider Popover
               IconButton(
                 icon: Icon(
                   Icons.line_weight,
@@ -159,21 +155,21 @@ class SamsungToolsBar extends StatelessWidget {
                 child: VerticalDivider(width: 14, thickness: 1),
               ),
 
-              // 10. Undo button
+              // 9. Undo button
               IconButton(
                 icon: const Icon(Icons.undo, size: 20),
                 tooltip: 'Undo',
                 onPressed: canUndo ? onUndo : null,
               ),
 
-              // 11. Redo button
+              // 10. Redo button
               IconButton(
                 icon: const Icon(Icons.redo, size: 20),
                 tooltip: 'Redo',
                 onPressed: canRedo ? onRedo : null,
               ),
 
-              // 12. Clear All button
+              // 11. Clear All button
               IconButton(
                 icon: const Icon(Icons.delete_outline, size: 20),
                 tooltip: 'Clear Annotations on Page',
@@ -186,127 +182,189 @@ class SamsungToolsBar extends StatelessWidget {
     );
   }
 
+  Widget _buildTypeModeButton(ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: isTypingMode ? theme.colorScheme.primaryContainer : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: TextButton.icon(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        icon: Icon(
+          Icons.keyboard,
+          size: 18,
+          color: isTypingMode ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+        ),
+        label: Text(
+          'Type',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isTypingMode ? FontWeight.bold : FontWeight.w500,
+            color: isTypingMode ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        onPressed: onToggleTypingMode,
+      ),
+    );
+  }
+
   Widget _buildToolButton({
     required DrawingTool tool,
     required IconData icon,
     required String tooltip,
     required ThemeData theme,
   }) {
-    final isSelected = activeTool == tool;
-    return IconButton(
-      icon: Icon(icon, size: 20),
-      tooltip: tooltip,
-      style: isSelected
-          ? IconButton.styleFrom(
-              backgroundColor: theme.colorScheme.primaryContainer,
-              foregroundColor: theme.colorScheme.primary,
-            )
-          : null,
-      onPressed: () => onToolSelected(tool),
+    final isSelected = !isTypingMode && activeTool == tool;
+
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => onToolSelected(tool),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: isSelected ? theme.colorScheme.primaryContainer : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildShapeMenuButton(BuildContext context, ThemeData theme) {
-    final isSelected = activeTool == DrawingTool.shape;
-    IconData shapeIcon;
-    switch (activeShape) {
-      case ShapeType.rectangle:
-        shapeIcon = Icons.crop_square;
-        break;
-      case ShapeType.circle:
-        shapeIcon = Icons.circle_outlined;
-        break;
-      case ShapeType.line:
-        shapeIcon = Icons.horizontal_rule;
-        break;
-      case ShapeType.arrow:
-        shapeIcon = Icons.arrow_right_alt;
-        break;
-    }
+    final isShapeSelected = !isTypingMode && activeTool == DrawingTool.shape;
 
     return PopupMenuButton<ShapeType>(
-      tooltip: 'Shapes',
+      tooltip: 'Draw Geometric Shapes',
       initialValue: activeShape,
       onSelected: (shape) {
         onShapeSelected(shape);
         onToolSelected(DrawingTool.shape);
       },
+      itemBuilder: (context) => [
+        _buildShapeMenuItem(ShapeType.rectangle, 'Rectangle', Icons.crop_square),
+        _buildShapeMenuItem(ShapeType.circle, 'Circle / Ellipse', Icons.circle_outlined),
+        _buildShapeMenuItem(ShapeType.line, 'Straight Line', Icons.horizontal_rule),
+        _buildShapeMenuItem(ShapeType.arrow, 'Directional Arrow', Icons.arrow_right_alt),
+      ],
       child: Container(
         padding: const EdgeInsets.all(8),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: isShapeSelected ? theme.colorScheme.primaryContainer : Colors.transparent,
+          shape: BoxShape.circle,
         ),
         child: Icon(
-          shapeIcon,
+          _getShapeIcon(activeShape),
           size: 20,
-          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+          color: isShapeSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurfaceVariant,
         ),
       ),
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: ShapeType.rectangle,
-          child: Row(children: [Icon(Icons.crop_square), SizedBox(width: 10), Text('Rectangle')]),
-        ),
-        const PopupMenuItem(
-          value: ShapeType.circle,
-          child: Row(children: [Icon(Icons.circle_outlined), SizedBox(width: 10), Text('Circle / Oval')]),
-        ),
-        const PopupMenuItem(
-          value: ShapeType.line,
-          child: Row(children: [Icon(Icons.horizontal_rule), SizedBox(width: 10), Text('Straight Line')]),
-        ),
-        const PopupMenuItem(
-          value: ShapeType.arrow,
-          child: Row(children: [Icon(Icons.arrow_right_alt), SizedBox(width: 10), Text('Arrow')]),
-        ),
-      ],
     );
   }
 
+  PopupMenuItem<ShapeType> _buildShapeMenuItem(ShapeType type, String title, IconData icon) {
+    return PopupMenuItem<ShapeType>(
+      value: type,
+      child: Row(
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 10),
+          Text(title),
+        ],
+      ),
+    );
+  }
+
+  IconData _getShapeIcon(ShapeType shape) {
+    switch (shape) {
+      case ShapeType.rectangle:
+        return Icons.crop_square;
+      case ShapeType.circle:
+        return Icons.circle_outlined;
+      case ShapeType.line:
+        return Icons.horizontal_rule;
+      case ShapeType.arrow:
+        return Icons.arrow_right_alt;
+    }
+  }
+
   void _showColorPickerDialog(BuildContext context) {
+    Color tempColor = activeColor;
+
     showDialog(
       context: context,
       builder: (ctx) {
-        Color pickerColor = activeColor;
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Select Tool Color'),
+          title: const Text('Select Color', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Quick Palette Swatches
+                // Quick presets palette
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 12,
+                  runSpacing: 12,
                   children: _palette.map((c) {
+                    final isCurrent = c.toARGB32() == activeColor.toARGB32();
                     return GestureDetector(
                       onTap: () {
                         onColorChanged(c);
-                        Navigator.of(context).pop();
+                        Navigator.of(ctx).pop();
                       },
                       child: Container(
-                        width: 34,
-                        height: 34,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: c,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey.shade400, width: 2),
+                          border: Border.all(
+                            color: isCurrent ? Colors.blueAccent : Colors.grey.shade400,
+                            width: isCurrent ? 3 : 1.5,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                          ],
                         ),
+                        child: isCurrent
+                            ? Icon(
+                                Icons.check,
+                                size: 20,
+                                color: c.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+                              )
+                            : null,
                       ),
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 const Divider(),
-                const SizedBox(height: 8),
-                // Full Color Picker
+                const SizedBox(height: 10),
+
+                // Full HSV Color Picker
                 ColorPicker(
-                  pickerColor: pickerColor,
-                  onColorChanged: (c) => pickerColor = c,
-                  pickerAreaHeightPercent: 0.5,
-                  enableAlpha: true,
+                  pickerColor: tempColor,
+                  onColorChanged: (c) => tempColor = c,
+                  labelTypes: const [],
+                  pickerAreaHeightPercent: 0.6,
+                  enableAlpha: false,
                   displayThumbColor: true,
                 ),
               ],
@@ -314,13 +372,13 @@ class SamsungToolsBar extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () {
-                onColorChanged(pickerColor);
-                Navigator.of(context).pop();
+                onColorChanged(tempColor);
+                Navigator.of(ctx).pop();
               },
               child: const Text('Apply Color'),
             ),
@@ -331,48 +389,57 @@ class SamsungToolsBar extends StatelessWidget {
   }
 
   void _showStrokeWidthDialog(BuildContext context) {
-    double current = strokeWidth;
+    double tempWidth = strokeWidth;
+
     showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setDialogState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Stroke Thickness'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${current.toInt()} px',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  const SizedBox(height: 12),
-                  Slider(
-                    min: 1,
-                    max: 30,
-                    value: current,
-                    onChanged: (val) => setState(() => current = val),
-                  ),
-                  const SizedBox(height: 10),
-                  // Visual Preview Dot
-                  Center(
-                    child: Container(
-                      width: current,
-                      height: current,
-                      decoration: BoxDecoration(
-                        color: activeColor,
-                        shape: BoxShape.circle,
+              title: const Text('Pen Thickness', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              content: SizedBox(
+                width: 300,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('${tempWidth.toInt()} px',
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 14),
+                    Slider(
+                      value: tempWidth,
+                      min: 1.0,
+                      max: 24.0,
+                      divisions: 23,
+                      onChanged: (val) {
+                        setDialogState(() => tempWidth = val);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    // Visual stroke preview
+                    Center(
+                      child: Container(
+                        width: 180,
+                        height: 30,
+                        alignment: Alignment.center,
+                        child: Container(
+                          height: tempWidth,
+                          decoration: BoxDecoration(
+                            color: activeColor,
+                            borderRadius: BorderRadius.circular(tempWidth / 2),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               actions: [
                 FilledButton(
                   onPressed: () {
-                    onStrokeWidthChanged(current);
-                    Navigator.of(context).pop();
+                    onStrokeWidthChanged(tempWidth);
+                    Navigator.of(ctx).pop();
                   },
                   child: const Text('Done'),
                 ),
@@ -384,3 +451,6 @@ class SamsungToolsBar extends StatelessWidget {
     );
   }
 }
+
+// Backward compatibility alias
+typedef SamsungToolsBar = NoteToolsBar;

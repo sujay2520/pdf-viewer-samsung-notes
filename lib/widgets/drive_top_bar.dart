@@ -57,7 +57,7 @@ class DriveTopBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 0,
       title: Row(
         children: [
-          // Google Drive / Samsung icon indicator
+          // Google Drive style PDF icon indicator
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
@@ -105,7 +105,7 @@ class DriveTopBar extends StatelessWidget implements PreferredSizeWidget {
           onPressed: onToggleSearch,
         ),
 
-        // 2. White Pages to Dark Theme Toggle (Drive / Samsung Night Inversion)
+        // 2. White Pages to Dark Theme Toggle (Night Inversion)
         PopupMenuButton<PdfColorFilterMode>(
           tooltip: 'Page Dark Theme / Inversion',
           icon: Icon(
@@ -142,7 +142,7 @@ class DriveTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
         ),
 
-        // 3. Samsung Notes Markup / Draw Mode Toggle
+        // 3. Notes Markup / Draw Mode Toggle
         IconButton(
           icon: Icon(
             Icons.edit_outlined,
@@ -153,14 +153,14 @@ class DriveTopBar extends StatelessWidget implements PreferredSizeWidget {
                   backgroundColor: theme.colorScheme.primaryContainer,
                 )
               : null,
-          tooltip: 'Samsung Notes Annotate / Draw',
+          tooltip: 'Annotate & Draw Markup',
           onPressed: onToggleAnnotationMode,
         ),
 
-        // 4. Samsung Print Button
+        // 4. Print Button
         IconButton(
           icon: const Icon(Icons.print_outlined),
-          tooltip: 'Samsung Print (Ctrl+P)',
+          tooltip: 'Print Document (Ctrl+P)',
           onPressed: onPrint,
         ),
 

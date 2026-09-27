@@ -21,9 +21,9 @@ class PrintService {
     );
   }
 
-  /// Prints a Samsung Note using system print dialog
+  /// Prints a Note document using system print dialog
   Future<void> printNote({
-    required SamsungNote note,
+    required NoteDocument note,
     bool printDarkMode = false,
   }) async {
     final pdfFile = await PdfExportService.instance.exportNoteToPdf(
@@ -33,7 +33,7 @@ class PrintService {
     await printPdfFile(pdfFile: pdfFile, jobName: note.title);
   }
 
-  /// Shows the Samsung-style Print configuration dialog
+  /// Shows the Print configuration dialog
   static Future<void> showPrintDialog({
     required BuildContext context,
     required String documentTitle,
@@ -61,7 +61,7 @@ class PrintService {
                     child: Icon(Icons.print_rounded, color: theme.colorScheme.primary),
                   ),
                   const SizedBox(width: 12),
-                  const Text('Samsung Print'),
+                  const Text('Print Document'),
                 ],
               ),
               content: SizedBox(
@@ -101,11 +101,11 @@ class PrintService {
                   child: const Text('Cancel'),
                 ),
                 FilledButton.icon(
-                  icon: const Icon(Icons.print_outlined),
-                  label: const Text('Print Document'),
-                  onPressed: () {
+                  icon: const Icon(Icons.print, size: 18),
+                  label: const Text('Print'),
+                  onPressed: () async {
                     Navigator.of(context).pop();
-                    onConfirm(
+                    await onConfirm(
                       printDarkMode: isDarkMode,
                       includeAnnotations: includeAnnotations,
                     );

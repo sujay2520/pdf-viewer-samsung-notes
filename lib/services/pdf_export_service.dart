@@ -8,11 +8,11 @@ class PdfExportService {
   static final PdfExportService instance = PdfExportService._();
   PdfExportService._();
 
-  /// Converts a SamsungNote into a PDF document and saves it
-  Future<File> exportNoteToPdf(SamsungNote note, {String? targetPath, bool exportDarkMode = false}) async {
+  /// Converts a NoteDocument into a PDF document and saves it
+  Future<File> exportNoteToPdf(NoteDocument note, {String? targetPath, bool exportDarkMode = false}) async {
     final doc = pw.Document(
       title: note.title,
-      author: 'Samsung Notes & Drive PDF',
+      author: 'Drive Notes & PDF',
     );
 
     for (final page in note.pages) {

@@ -6,9 +6,10 @@ import 'package:pdfrx/pdfrx.dart';
 import '../models/color_filter_mode.dart';
 import '../models/annotation_model.dart';
 import '../services/print_service.dart';
+import '../services/notes_storage_service.dart';
 import '../widgets/drive_top_bar.dart';
 import '../widgets/drive_bottom_bar.dart';
-import '../widgets/samsung_tools_bar.dart';
+import '../widgets/note_tools_bar.dart';
 import '../widgets/thumbnails_drawer.dart';
 import '../widgets/search_overlay.dart';
 import '../widgets/drawing_canvas.dart';
@@ -31,7 +32,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   late File _currentFile;
   late String _documentTitle;
   late final PdfViewerController _controller;
-  late final PdfTextSearcher _searcher;
+  PdfTextSearcher? _searcher;
 
   // Viewing State
   int _currentPage = 1;
@@ -42,11 +43,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   bool _showThumbnails = false;
   final TextEditingController _searchQueryController = TextEditingController();
 
-  // Samsung Notes Markup State
+  // Markup & Drawing State
   bool _isAnnotationMode = false;
   DrawingTool _activeTool = DrawingTool.pen;
   ShapeType _activeShape = ShapeType.rectangle;
-  Color _activeColor = const Color(0xFF1976D2); // Default Samsung blue
+  Color _activeColor = const Color(0xFF1976D2);
   double _strokeWidth = 3.0;
 
   // Per-page annotation storage
@@ -58,12 +59,10 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     _currentFile = widget.file;
     _documentTitle = widget.initialTitle ?? widget.file.uri.pathSegments.last;
     _controller = PdfViewerController();
-    _searcher = PdfTextSearcher(_controller);
-
     _controller.addListener(_onControllerUpdate);
-    _searcher.addListener(() {
-      if (mounted) setState(() {});
-    });
+
+    // Track recently opened PDF
+    NotesStorageService.instance.addRecentPdf(_currentFile.path, _documentTitle);
   }
 
   void _onControllerUpdate() {
@@ -113,7 +112,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           setState(() {
             _isSearchActive = !_isSearchActive;
             if (!_isSearchActive) {
-              _searcher.resetTextSearch();
+              _searcher?.resetTextSearch();
               _searchQueryController.clear();
             }
           });
@@ -150,7 +149,61 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 controller: _controller,
                 params: PdfViewerParams(
                   backgroundColor: _colorFilterMode.backgroundColor,
-                  pagePaintCallbacks: [_searcher.pageTextMatchPaintCallback],
+                  pagePaintCallbacks: [
+                    (canvas, pageRect, page) {
+                      _searcher?.pageTextMatchPaintCallback(canvas, pageRect, page);
+                    }
+                  ],
+                  onViewerReady: (document, controller) {
+                    if (mounted) {
+                      setState(() {
+                        _searcher = PdfTextSearcher(controller);
+                        _searcher!.addListener(() {
+                          if (mounted) setState(() {});
+                        });
+                        _totalPages = document.pages.length;
+                      });
+                      NotesStorageService.instance.addRecentPdf(
+                        _currentFile.path,
+                        _documentTitle,
+                        pageCount: document.pages.length,
+                      );
+                    }
+                  },
+                  errorBannerBuilder: (context, error, stackTrace, documentRef) {
+                    return Center(
+                      child: Container(
+                        margin: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFB71C1C),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.white, size: 48),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Unable to display PDF',
+                              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              error.toString(),
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  },
                   onPageChanged: (pageNum) {
                     if (pageNum != null && mounted) {
                       setState(() => _currentPage = pageNum);
@@ -161,7 +214,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
             ),
           ),
 
-          // 2. Samsung Notes Drawing & Markup Canvas Overlay (Active in Annotation mode)
+          // 2. Drawing & Markup Canvas Overlay (Active when Annotation mode is enabled)
           if (_isAnnotationMode)
             Positioned.fill(
               child: LayoutBuilder(
@@ -181,7 +234,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               ),
             ),
 
-          // 3. Adobe Acrobat Search Bar Overlay
+          // 3. Adobe Acrobat Style Text Search Overlay
           if (_isSearchActive)
             Positioned(
               top: 12,
@@ -190,21 +243,21 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               child: Center(
                 child: SearchOverlay(
                   controller: _searchQueryController,
-                  currentMatchIndex: (_searcher.currentIndex ?? 0) + 1,
-                  totalMatches: _searcher.matches.length,
+                  currentMatchIndex: (_searcher?.currentIndex ?? 0) + 1,
+                  totalMatches: _searcher?.matches.length ?? 0,
                   onSearchChanged: (query) {
                     if (query.trim().isNotEmpty) {
-                      _searcher.startTextSearch(query.trim());
+                      _searcher?.startTextSearch(query.trim());
                     } else {
-                      _searcher.resetTextSearch();
+                      _searcher?.resetTextSearch();
                     }
                   },
-                  onNextMatch: () => _searcher.goToNextMatch(),
-                  onPreviousMatch: () => _searcher.goToPrevMatch(),
+                  onNextMatch: () => _searcher?.goToNextMatch(),
+                  onPreviousMatch: () => _searcher?.goToPrevMatch(),
                   onClose: () {
                     setState(() {
                       _isSearchActive = false;
-                      _searcher.resetTextSearch();
+                      _searcher?.resetTextSearch();
                       _searchQueryController.clear();
                     });
                   },
@@ -212,20 +265,22 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               ),
             ),
 
-          // 4. Samsung Notes Studio Markup Toolbar
+          // 4. Markup Studio Toolbar
           if (_isAnnotationMode)
             Positioned(
               top: _isSearchActive ? 74 : 12,
               left: 16,
               right: 16,
               child: Center(
-                child: SamsungToolsBar(
+                child: NoteToolsBar(
+                  isTypingMode: false,
                   activeTool: _activeTool,
                   activeShape: _activeShape,
                   activeColor: _activeColor,
                   strokeWidth: _strokeWidth,
                   canUndo: currentPageAnnotations.undoStack.isNotEmpty,
                   canRedo: currentPageAnnotations.redoStack.isNotEmpty,
+                  onToggleTypingMode: () {},
                   onToolSelected: (tool) => setState(() => _activeTool = tool),
                   onShapeSelected: (shape) => setState(() => _activeShape = shape),
                   onColorChanged: (c) => setState(() => _activeColor = c),
@@ -243,7 +298,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               ),
             ),
 
-          // 5. Adobe Acrobat Thumbnails Drawer
+          // 5. Thumbnails Drawer
           if (_showThumbnails)
             Positioned(
               top: 0,
@@ -356,11 +411,11 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         _documentTitle = newFile.uri.pathSegments.last;
         _annotationsByPage.clear();
       });
+      NotesStorageService.instance.addRecentPdf(newFile.path, _documentTitle);
     }
   }
 
   void _handleRotate() {
-    // In pdfrx, rotation or view transformation
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Rotated document 90° clockwise'), duration: Duration(seconds: 1)),
     );

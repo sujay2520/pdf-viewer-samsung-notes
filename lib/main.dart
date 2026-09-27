@@ -20,7 +20,7 @@ void main() async {
         center: true,
         backgroundColor: Colors.transparent,
         skipTaskbar: false,
-        title: 'Samsung Notes & Google Drive PDF',
+        title: 'Drive Notes & PDF',
       );
 
       windowManager.waitUntilReadyToShow(windowOptions, () async {
@@ -37,7 +37,7 @@ void main() async {
     }
   }
 
-  runApp(const DrivePdfSamsungNotesApp());
+  runApp(const DriveNotesPdfApp());
 }
 
 Future<void> _registerGlobalWinZShortcut() async {
@@ -62,19 +62,19 @@ Future<void> _registerGlobalWinZShortcut() async {
   }
 }
 
-class DrivePdfSamsungNotesApp extends StatefulWidget {
-  const DrivePdfSamsungNotesApp({super.key});
+class DriveNotesPdfApp extends StatefulWidget {
+  const DriveNotesPdfApp({super.key});
 
   @override
-  State<DrivePdfSamsungNotesApp> createState() => _DrivePdfSamsungNotesAppState();
+  State<DriveNotesPdfApp> createState() => _DriveNotesPdfAppState();
 }
 
-class _DrivePdfSamsungNotesAppState extends State<DrivePdfSamsungNotesApp> {
+class _DriveNotesPdfAppState extends State<DriveNotesPdfApp> {
   final ThemeMode _themeMode = ThemeMode.system;
 
   @override
   Widget build(BuildContext context) {
-    // Google Drive Material 3 Light Theme
+    // Modern Google Drive Material 3 Light Theme
     final lightTheme = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -91,7 +91,7 @@ class _DrivePdfSamsungNotesAppState extends State<DrivePdfSamsungNotesApp> {
       ),
     );
 
-    // Google Drive Material 3 Dark Theme
+    // Modern Google Drive Material 3 Dark Theme
     final darkTheme = ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -109,7 +109,7 @@ class _DrivePdfSamsungNotesAppState extends State<DrivePdfSamsungNotesApp> {
     );
 
     return MaterialApp(
-      title: 'Samsung Notes & Drive PDF',
+      title: 'Drive Notes & PDF',
       debugShowCheckedModeBanner: false,
       theme: lightTheme,
       darkTheme: darkTheme,

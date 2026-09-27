@@ -9,14 +9,14 @@ class SampleDocsService {
 
   Future<File> getOrCreateSamplePdf() async {
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/sample_document.pdf');
+    final file = File('${tempDir.path}/drive_notes_guide.pdf');
     if (await file.exists()) {
       return file;
     }
 
     final doc = pw.Document(
-      title: 'Google Drive & Samsung Notes PDF Guide',
-      author: 'PDF Expert Team',
+      title: 'Drive Notes & PDF Guide',
+      author: 'Drive Notes & PDF Team',
     );
 
     // Page 1: Overview & Inversion Mode
@@ -33,7 +33,7 @@ class SampleDocsService {
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Drive PDF Viewer & Samsung Notes',
+                    pw.Text('Drive Notes & PDF Viewer',
                         style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
                     pw.Text('Guide v1.0', style: const pw.TextStyle(color: PdfColors.grey600)),
                   ],
@@ -42,7 +42,7 @@ class SampleDocsService {
               pw.SizedBox(height: 14),
               pw.Paragraph(
                 text:
-                    'This sample document demonstrates the powerful features of your cross-platform PDF Viewer and Samsung Notes PC studio. You can test page inversion, annotations, text search, and printing directly on this document.',
+                    'This sample document demonstrates the powerful features of your cross-platform PDF Viewer and Notebook studio. You can test page inversion, annotations, text search, and printing directly on this document.',
                 style: const pw.TextStyle(fontSize: 12, lineSpacing: 4),
               ),
               pw.SizedBox(height: 10),
@@ -56,31 +56,34 @@ class SampleDocsService {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('🌙 Smart Dark Inversion Technology',
+                    pw.Text('Smart Dark Inversion Technology',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.blue900, fontSize: 13)),
                     pw.SizedBox(height: 4),
                     pw.Text(
-                      'Unlike conventional viewers that keep white pages glaring while darkening only the app borders, this viewer converts white pages to deep OLED dark (#000000) or Midnight charcoal (#1E1F22) with crisp off-white text. Toggle the Sun/Moon icon in the top toolbar to see it live!',
-                      style: const pw.TextStyle(fontSize: 11, color: PdfColors.blueGrey800),
+                      'Turn blinding white pages into eye-friendly dark pages without losing images or readability! Try the moon icon in the top toolbar:',
+                      style: const pw.TextStyle(fontSize: 11),
                     ),
+                    pw.SizedBox(height: 6),
+                    pw.Text('• OLED Dark: Pure black background for minimum battery and OLED screens.\n'
+                        '• Midnight Charcoal: Soft dark grey (Google Drive dark style).\n'
+                        '• Warm Sepia: Relaxing reading warmth for late nights.\n'
+                        '• High Contrast: Maximum legibility for low vision.',
+                        style: const pw.TextStyle(fontSize: 10, lineSpacing: 2)),
                   ],
                 ),
               ),
               pw.SizedBox(height: 16),
-              pw.Text('Key Adobe Acrobat & Samsung Features:',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
+              pw.Text('Key Viewer & Studio Features:',
+                  style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.grey900)),
               pw.SizedBox(height: 8),
               pw.Bullet(
-                text: 'Global Windows Shortcut: Press Win + Z from anywhere in Windows to summon Samsung Notes instantly.',
-              ),
-              pw.Bullet(
-                text: 'Freehand Drawing & Markup: Choose Pen, Fountain Pen, Highlighter, Shapes (Rectangles, Arrows), and Eraser.',
+                text: 'Global Windows Shortcut: Press Win + Z from anywhere in Windows to summon Notes instantly.',
               ),
               pw.Bullet(
                 text: 'In-Document Text Search: Search any word with real-time match count and jumping.',
               ),
               pw.Bullet(
-                text: 'Samsung Print & Save as PDF: Print to paper or PDF printer with annotations and dark mode options.',
+                text: 'Print & Save as PDF: Print to paper or PDF printer with annotations and dark mode options.',
               ),
               pw.Bullet(
                 text: 'Page Navigation: Thumbnail grid drawer, fit-to-width, fit-to-page, and smooth continuous scroll.',
@@ -91,7 +94,7 @@ class SampleDocsService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text('Page 1 of 2', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                  pw.Text('Drive PDF & Samsung Notes', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                  pw.Text('Drive Notes & PDF', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                 ],
               ),
             ],
@@ -115,7 +118,7 @@ class SampleDocsService {
                     style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo900)),
               ),
               pw.SizedBox(height: 10),
-              pw.Text('Samsung Note Templates Comparison:',
+              pw.Text('Notebook Templates Comparison:',
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
               pw.SizedBox(height: 8),
               pw.TableHelper.fromTextArray(
@@ -137,7 +140,7 @@ class SampleDocsService {
               pw.Text('Keyboard & Touch Gestures:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
               pw.SizedBox(height: 6),
               pw.Text('• Ctrl + F (or Search button): Open Find in Page\n'
-                  '• Ctrl + P: Open Samsung Print Dialog\n'
+                  '• Ctrl + P: Open Print Dialog\n'
                   '• Ctrl + S: Save as PDF\n'
                   '• Win + Z: System-wide shortcut to summon Notes\n'
                   '• Pinch / Mouse Wheel: Zoom in and out',
@@ -148,7 +151,7 @@ class SampleDocsService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text('Page 2 of 2', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                  pw.Text('Drive PDF & Samsung Notes', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                  pw.Text('Drive Notes & PDF', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                 ],
               ),
             ],

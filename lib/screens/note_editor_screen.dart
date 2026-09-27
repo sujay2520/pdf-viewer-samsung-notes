@@ -5,12 +5,12 @@ import '../models/annotation_model.dart';
 import '../services/notes_storage_service.dart';
 import '../services/print_service.dart';
 import '../services/pdf_export_service.dart';
-import '../widgets/samsung_tools_bar.dart';
+import '../widgets/note_tools_bar.dart';
 import '../widgets/drawing_canvas.dart';
 import '../widgets/note_page_background.dart';
 
 class NoteEditorScreen extends StatefulWidget {
-  final SamsungNote note;
+  final NoteDocument note;
 
   const NoteEditorScreen({super.key, required this.note});
 
@@ -19,17 +19,18 @@ class NoteEditorScreen extends StatefulWidget {
 }
 
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
-  late SamsungNote _note;
+  late NoteDocument _note;
   int _currentPageIndex = 0;
   late final TextEditingController _titleController;
   late final TextEditingController _textEditingController;
+  final FocusNode _textFocusNode = FocusNode();
 
-  // Samsung Notes Studio Tools State
-  DrawingTool _activeTool = DrawingTool.pen;
+  // Note Studio Tools State
+  bool _isTypingMode = true; // Enabled by default so user can immediately type on lines!
+  DrawingTool _activeTool = DrawingTool.select;
   ShapeType _activeShape = ShapeType.rectangle;
   Color _activeColor = const Color(0xFF1976D2);
   double _strokeWidth = 3.0;
-  bool _isTypingMode = false;
 
   NotePage get _currentPage => _note.pages[_currentPageIndex];
 
@@ -45,6 +46,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   void dispose() {
     _titleController.dispose();
     _textEditingController.dispose();
+    _textFocusNode.dispose();
     super.dispose();
   }
 
@@ -54,6 +56,22 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         ? _titleController.text.trim()
         : 'Untitled Note';
     NotesStorageService.instance.saveNote(_note);
+  }
+
+  EdgeInsets _getTextPaddingForTemplate(NotePageTemplate template) {
+    switch (template) {
+      case NotePageTemplate.ruled:
+        // Margin line is at x=60, first rule line at y=48.
+        // top: 24 with height: 2.0 font 16 positions text baseline exactly on y=48!
+        return const EdgeInsets.fromLTRB(72, 24, 32, 32);
+      case NotePageTemplate.cornell:
+        // Cue column is x=160, main area starts right after
+        return const EdgeInsets.fromLTRB(172, 72, 32, 70);
+      case NotePageTemplate.grid:
+      case NotePageTemplate.dotGrid:
+      case NotePageTemplate.blank:
+        return const EdgeInsets.fromLTRB(36, 24, 36, 32);
+    }
   }
 
   @override
@@ -72,6 +90,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           backgroundColor: isDark ? const Color(0xFF1E1F22) : Colors.white,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
+            tooltip: 'Save & Return to Library',
             onPressed: () {
               _saveCurrentNote();
               Navigator.of(context).pop();
@@ -90,24 +109,30 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             onChanged: (val) => _saveCurrentNote(),
           ),
           actions: [
-            // Mode toggle: Drawing vs Text Typing
-            IconButton(
-              icon: Icon(
-                _isTypingMode ? Icons.keyboard : Icons.edit_note,
-                color: _isTypingMode ? theme.colorScheme.primary : null,
+            // Mode Indicator / Toggle: Typing vs Drawing
+            FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-              tooltip: _isTypingMode ? 'Switch to Pen Drawing' : 'Switch to Text Typing',
+              icon: Icon(
+                _isTypingMode ? Icons.keyboard : Icons.edit,
+                size: 18,
+              ),
+              label: Text(_isTypingMode ? 'Type Mode' : 'Draw Mode'),
               onPressed: () {
                 setState(() {
                   _isTypingMode = !_isTypingMode;
                   if (_isTypingMode) {
                     _activeTool = DrawingTool.select;
+                    _textFocusNode.requestFocus();
                   } else {
                     _activeTool = DrawingTool.pen;
+                    _textFocusNode.unfocus();
                   }
                 });
               },
             ),
+            const SizedBox(width: 8),
 
             // Template selector menu
             PopupMenuButton<NotePageTemplate>(
@@ -148,17 +173,17 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               },
             ),
 
-            // Samsung Print
+            // Print Document
             IconButton(
               icon: const Icon(Icons.print_outlined),
               tooltip: 'Print Note',
               onPressed: _handlePrintNote,
             ),
 
-            // Save as PDF
+            // Save / Export as PDF
             IconButton(
               icon: const Icon(Icons.picture_as_pdf_outlined),
-              tooltip: 'Export / Save as PDF',
+              tooltip: 'Export as PDF',
               onPressed: _handleExportPdf,
             ),
 
@@ -167,22 +192,31 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         ),
         body: Column(
           children: [
-            // Top Toolbar: Samsung Tools Bar
+            // Top Toolbar: Note Tools Bar
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8),
               color: isDark ? const Color(0xFF1E1F22) : const Color(0xFFE9EEF4),
               alignment: Alignment.center,
-              child: SamsungToolsBar(
+              child: NoteToolsBar(
+                isTypingMode: _isTypingMode,
                 activeTool: _activeTool,
                 activeShape: _activeShape,
                 activeColor: _activeColor,
                 strokeWidth: _strokeWidth,
                 canUndo: _currentPage.annotations.undoStack.isNotEmpty,
                 canRedo: _currentPage.annotations.redoStack.isNotEmpty,
+                onToggleTypingMode: () {
+                  setState(() {
+                    _isTypingMode = true;
+                    _activeTool = DrawingTool.select;
+                    _textFocusNode.requestFocus();
+                  });
+                },
                 onToolSelected: (tool) {
                   setState(() {
                     _activeTool = tool;
                     _isTypingMode = false;
+                    _textFocusNode.unfocus();
                   });
                 },
                 onShapeSelected: (shape) => setState(() => _activeShape = shape),
@@ -227,23 +261,30 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                             ),
                           ),
 
-                          // 2. Text typing layer (if typing mode active or text exists)
+                          // 2. Direct Lined Text Typing Layer (Always accessible!)
                           Positioned.fill(
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(70, 48, 30, 40),
+                              padding: _getTextPaddingForTemplate(_currentPage.template),
                               child: TextField(
                                 controller: _textEditingController,
+                                focusNode: _textFocusNode,
                                 maxLines: null,
                                 expands: true,
                                 enabled: _isTypingMode,
+                                cursorColor: theme.colorScheme.primary,
+                                cursorWidth: 2.0,
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  height: 2.0, // Aligns with ruled lines
+                                  fontSize: 16.0,
+                                  height: 2.0, // Aligns exactly with 32px ruled lines!
+                                  letterSpacing: 0.2,
                                   color: _currentPage.isDark ? Colors.white : Colors.black87,
                                 ),
                                 decoration: const InputDecoration(
-                                  hintText: 'Tap to start typing notes...',
+                                  hintText: 'Click anywhere on the lines to start typing...',
+                                  hintStyle: TextStyle(color: Colors.black26),
                                   border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  isDense: true,
                                 ),
                                 onChanged: (val) => _saveCurrentNote(),
                               ),
@@ -251,18 +292,22 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                           ),
 
                           // 3. Vector Drawing & Markup Canvas Layer
+                          // When typing mode is active, IgnorePointer ensures clicks pass 100% to TextField!
                           Positioned.fill(
-                            child: DrawingCanvas(
-                              annotations: _currentPage.annotations,
-                              activeTool: _activeTool,
-                              activeShape: _activeShape,
-                              activeColor: _activeColor,
-                              strokeWidth: _strokeWidth,
-                              size: const Size(700, 980),
-                              onAnnotationChanged: () {
-                                _saveCurrentNote();
-                                setState(() {});
-                              },
+                            child: IgnorePointer(
+                              ignoring: _isTypingMode,
+                              child: DrawingCanvas(
+                                annotations: _currentPage.annotations,
+                                activeTool: _activeTool,
+                                activeShape: _activeShape,
+                                activeColor: _activeColor,
+                                strokeWidth: _strokeWidth,
+                                size: const Size(700, 980),
+                                onAnnotationChanged: () {
+                                  _saveCurrentNote();
+                                  setState(() {});
+                                },
+                              ),
                             ),
                           ),
                         ],
@@ -314,46 +359,27 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                       ),
                     ],
                   ),
-                  Row(
-                    children: [
-                      FilledButton.tonalIcon(
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Page'),
-                        onPressed: () {
-                          _saveCurrentNote();
-                          setState(() {
-                            final newPage = NotePage(
-                              pageNumber: _note.pages.length + 1,
-                              template: _currentPage.template,
-                              isDark: _currentPage.isDark,
-                            );
-                            _note.pages.add(newPage);
-                            _currentPageIndex = _note.pages.length - 1;
-                            _textEditingController.clear();
-                          });
-                          _saveCurrentNote();
-                        },
-                      ),
-                      if (_note.pages.length > 1) ...[
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          tooltip: 'Delete Current Page',
-                          onPressed: () {
-                            if (_note.pages.length > 1) {
-                              setState(() {
-                                _note.pages.removeAt(_currentPageIndex);
-                                if (_currentPageIndex >= _note.pages.length) {
-                                  _currentPageIndex = _note.pages.length - 1;
-                                }
-                                _textEditingController.text = _currentPage.textContent;
-                              });
-                              _saveCurrentNote();
-                            }
-                          },
-                        ),
-                      ],
-                    ],
+
+                  // Add Page button
+                  FilledButton.tonalIcon(
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Page'),
+                    onPressed: () {
+                      _saveCurrentNote();
+                      setState(() {
+                        final newPageNum = _note.pages.length + 1;
+                        _note.pages.add(
+                          NotePage(
+                            pageNumber: newPageNum,
+                            template: _currentPage.template,
+                            isDark: _currentPage.isDark,
+                          ),
+                        );
+                        _currentPageIndex = _note.pages.length - 1;
+                        _textEditingController.text = '';
+                      });
+                      _saveCurrentNote();
+                    },
                   ),
                 ],
               ),
@@ -372,7 +398,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       onConfirm: ({required bool printDarkMode, required bool includeAnnotations}) async {
         try {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Preparing print document...')),
+            const SnackBar(content: Text('Preparing note for print...')),
           );
           await PrintService.instance.printNote(
             note: _note,
@@ -381,7 +407,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Print error: $e')),
+              SnackBar(content: Text('Print failed: $e')),
             );
           }
         }
@@ -392,25 +418,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Future<void> _handleExportPdf() async {
     _saveCurrentNote();
     try {
-      final defaultName = '${_note.title.replaceAll(RegExp(r'[^\w\s-]'), '_')}.pdf';
-      final exportedFile = await PdfExportService.instance.exportNoteToPdf(
+      final sanitizedTitle = _note.title.replaceAll(RegExp(r'[^\w\s-]'), '_');
+      final exportFile = await PdfExportService.instance.exportNoteToPdf(
         _note,
         exportDarkMode: _currentPage.isDark,
       );
-      final bytes = await exportedFile.readAsBytes();
 
-      final uri = await FilePicker.saveFile(
+      final saveUri = await FilePicker.saveFile(
         dialogTitle: 'Save Note as PDF',
-        fileName: defaultName,
-        bytes: bytes,
+        fileName: '$sanitizedTitle.pdf',
+        bytes: await exportFile.readAsBytes(),
         type: FileType.custom,
         allowedExtensions: ['pdf'],
       );
 
-      if (uri != null && mounted) {
+      if (saveUri != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Exported PDF: ${uri.path}'),
+            content: Text('Note exported to: ${saveUri.path}'),
             backgroundColor: Colors.green.shade700,
           ),
         );
@@ -418,7 +443,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export error: $e')),
+          SnackBar(content: Text('Export failed: $e')),
         );
       }
     }

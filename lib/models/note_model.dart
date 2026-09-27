@@ -81,7 +81,7 @@ class NotePage {
       );
 }
 
-class SamsungNote {
+class NoteDocument {
   final String id;
   String title;
   DateTime createdAt;
@@ -91,7 +91,7 @@ class SamsungNote {
   List<NotePage> pages;
   String? pdfSourcePath;
 
-  SamsungNote({
+  NoteDocument({
     String? id,
     required this.title,
     DateTime? createdAt,
@@ -118,7 +118,7 @@ class SamsungNote {
         'pdfSourcePath': pdfSourcePath,
       };
 
-  factory SamsungNote.fromJson(Map<String, dynamic> json) => SamsungNote(
+  factory NoteDocument.fromJson(Map<String, dynamic> json) => NoteDocument(
         id: json['id'] as String,
         title: json['title'] as String,
         createdAt: DateTime.parse(json['createdAt'] as String),

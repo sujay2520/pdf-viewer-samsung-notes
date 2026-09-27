@@ -1,6 +1,6 @@
-# Samsung Notes & Google Drive PDF Viewer (Windows & Mobile)
+# Drive Notes & PDF (Windows & Mobile)
 
-A modern, cross-platform Flutter application combining **Google Drive PDF Viewer**, **Adobe Acrobat Reader**, and **Samsung Notes for PC**.
+A modern, fast, cross-platform Flutter application combining **Google Drive PDF Viewer**, **Adobe Acrobat Reader**, and a versatile **Notebook Studio**.
 
 Built with Flutter 3.47.5 and Dart 3.13.4.
 
@@ -17,16 +17,16 @@ Traditional PDF viewers leave white pages glaring while only darkening the app c
 - **High Contrast Dark**: High-definition inverted contrast for dim lighting.
 
 ### 2. Global Windows Shortcut (`Win + Z`)
-- Press **`Windows Key + Z`** anywhere in Windows to instantly summon and focus the Samsung Notes workstation.
+- Press **`Windows Key + Z`** anywhere in Windows to instantly summon and focus the application.
 
 ### 3. Google Drive Theming & Adobe Acrobat Capabilities
 - **Google Drive M3 Design**: Clean top action bar, page count badge (`1 / 14`), search button, dark inversion selector, markup toggle, print, and save buttons.
 - **Floating Bottom Pill**: Zoom in/out, percentage presets (50% - 300%), Fit to Width, Fit to Page, and Page Scrubber.
-- **In-Document Text Search**: Full-text search with match counter (`3 of 12`), live match highlighting, and next/previous match navigation.
+- **In-Document Text Search**: Fast text search with match counter (`3 of 12`), live match highlighting, and next/previous match navigation.
 - **Page Thumbnails Drawer**: Visual thumbnail grid for quick navigation through long documents.
 
-### 4. Samsung Notes for PC Studio ("Doing Changes")
-- **Notes Dashboard**: Manage folders (`General`, `Tutorial`, `Personal`), search notes, star favorites, and multi-page notes.
+### 4. Notebook Studio ("Doing Changes")
+- **Direct Lined Page Typing**: Click anywhere on the lines to type notes directly, perfectly aligned with ruled line height.
 - **Paper Templates**:
   - Ruled / Lined (with red left margin)
   - Grid / Graph paper
@@ -34,17 +34,17 @@ Traditional PDF viewers leave white pages glaring while only darkening the app c
   - Cornell Notes (Cue column, Notes, and Summary area)
   - Blank canvas (Light & Dark)
 - **Vector Drawing & Markup Tools**:
+  - Dedicated Type Mode
   - Ballpoint Pen
   - Fountain / Calligraphy Pen
   - Semi-transparent Highlighter
   - Shapes (Rectangle, Circle/Oval, Line, Arrow)
-  - Text Notes (tap anywhere to insert text)
   - Eraser
   - Color wheel + swatches + stroke thickness slider
   - Undo / Redo history stack
 
-### 5. Samsung Print & Save as PDF
-- **Samsung Print**: Direct system print dialog integration with options to print in original light mode or inverted dark mode, with or without annotations.
+### 5. Direct Print & Save as PDF
+- **System Print**: Direct system print dialog integration with options to print in original light mode or inverted dark mode, with or without annotations.
 - **Save as PDF**: Export your notes or annotated PDFs with all vector drawings and notes embedded into standard PDF files.
 
 ---
