@@ -164,15 +164,14 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
 
   // WM_CLOSE behavior differs:
   if (message == WM_CLOSE) {
-    if (is_quicknote_) {
-      // Quicknotes: Let Flutter's onWindowClose handler save, then destroy
-      // The Dart side calls exit(0) after saving
-      ::DestroyWindow(hwnd);
-    } else {
+    if (!is_quicknote_) {
       // Main app: Hide to background (Sticky Notes style)
       ::ShowWindow(hwnd, SW_HIDE);
+      return 0;
     }
-    return 0;
+    // For quicknotes: do NOT destroy here.
+    // Fall through to flutter_controller_->HandleTopLevelWindowProc
+    // so window_manager intercepts WM_CLOSE and triggers onWindowClose() in Dart to save!
   }
 
   // Give Flutter, including plugins, an opportunity to handle window messages.

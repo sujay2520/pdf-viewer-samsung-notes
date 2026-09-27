@@ -24,11 +24,13 @@ void main(List<String> args) async {
           size: Size(380, 440),
           minimumSize: Size(280, 300),
           center: false,
-          backgroundColor: Color(0xFF2D2D30),
+          backgroundColor: Color(0xFF1E1F22),
           skipTaskbar: false,
           titleBarStyle: TitleBarStyle.hidden,
           title: 'Quick Note',
         );
+
+        await windowManager.setPreventClose(true);
 
         windowManager.waitUntilReadyToShow(quickNoteOptions, () async {
           await windowManager.show();

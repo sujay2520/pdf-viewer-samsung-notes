@@ -109,7 +109,7 @@ class NotesStorageService {
       final dir = await _notesDirectory;
       final file = File('${dir.path}/${note.id}.json');
       final jsonString = const JsonEncoder.withIndent('  ').convert(note.toJson());
-      await file.writeAsString(jsonString);
+      await file.writeAsString(jsonString, flush: true);
 
       final index = _cachedNotes.indexWhere((n) => n.id == note.id);
       if (index >= 0) {

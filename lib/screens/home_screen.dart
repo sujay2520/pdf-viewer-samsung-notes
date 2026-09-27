@@ -28,7 +28,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WindowListener {
   List<NoteDocument> _notes = [];
   List<RecentPdfItem> _recentPdfs = [];
   bool _isLoading = true;
@@ -40,7 +40,31 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      windowManager.addListener(this);
+    }
     _loadData();
+  }
+
+  @override
+  void onWindowFocus() {
+    _refreshDataQuietly();
+  }
+
+  @override
+  void onWindowRestore() {
+    _refreshDataQuietly();
+  }
+
+  Future<void> _refreshDataQuietly() async {
+    final notes = await NotesStorageService.instance.loadAllNotes();
+    final pdfs = await NotesStorageService.instance.loadRecentPdfs();
+    if (mounted) {
+      setState(() {
+        _notes = notes;
+        _recentPdfs = pdfs;
+      });
+    }
   }
 
   Future<void> _loadData() async {
@@ -58,6 +82,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      windowManager.removeListener(this);
+    }
     _searchController.dispose();
     super.dispose();
   }
