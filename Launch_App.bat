@@ -1,1 +1,3 @@
-start "" "%~dp0build\windows\x64\runner\Release\pdf_viewer_pro.exe"
+@echo off
+cd /d "%~dp0build\windows\x64\runner\Release"
+start "" "pdf_viewer_pro.exe"

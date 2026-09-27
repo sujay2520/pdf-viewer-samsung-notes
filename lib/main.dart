@@ -43,22 +43,40 @@ void main() async {
 Future<void> _registerGlobalWinZShortcut() async {
   try {
     await hotKeyManager.unregisterAll();
-    final winZHotKey = HotKey(
-      key: PhysicalKeyboardKey.keyZ,
-      modifiers: [HotKeyModifier.meta], // Meta key represents the Windows key on Windows
-      scope: HotKeyScope.system, // System-wide global shortcut
-    );
 
-    await hotKeyManager.register(
-      winZHotKey,
-      keyDownHandler: (hotKey) async {
-        debugPrint('Win + Z triggered! Bringing app to front.');
-        await windowManager.show();
-        await windowManager.focus();
-      },
-    );
+    // 1. Register Win + Z via hotkey_manager
+    try {
+      final winZHotKey = HotKey(
+        key: PhysicalKeyboardKey.keyZ,
+        modifiers: [HotKeyModifier.meta],
+        scope: HotKeyScope.system,
+      );
+      await hotKeyManager.register(
+        winZHotKey,
+        keyDownHandler: (hotKey) async {
+          await windowManager.show();
+          await windowManager.focus();
+        },
+      );
+    } catch (_) {}
+
+    // 2. Register Ctrl + Alt + Z as an alternate global shortcut
+    try {
+      final ctrlAltZHotKey = HotKey(
+        key: PhysicalKeyboardKey.keyZ,
+        modifiers: [HotKeyModifier.control, HotKeyModifier.alt],
+        scope: HotKeyScope.system,
+      );
+      await hotKeyManager.register(
+        ctrlAltZHotKey,
+        keyDownHandler: (hotKey) async {
+          await windowManager.show();
+          await windowManager.focus();
+        },
+      );
+    } catch (_) {}
   } catch (e) {
-    debugPrint('Could not register global Win+Z shortcut: $e');
+    debugPrint('Could not register hotkeys: $e');
   }
 }
 
