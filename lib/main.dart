@@ -7,8 +7,12 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 
 import 'screens/home_screen.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final isBackground = args.contains('--background') ||
+      args.contains('--hidden') ||
+      args.contains('--minimized');
 
   // Desktop Window & Global Hotkey initialization
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
@@ -23,12 +27,17 @@ void main() async {
         title: 'Drive Notes & PDF',
       );
 
+      // Prevent closing so clicking 'X' hides to background for instant Win + Z summon!
+      await windowManager.setPreventClose(true);
+
       windowManager.waitUntilReadyToShow(windowOptions, () async {
-        await windowManager.show();
-        await windowManager.focus();
+        if (!isBackground) {
+          await windowManager.show();
+          await windowManager.focus();
+        }
       });
 
-      // Register Win + Z global hotkey on Windows
+      // Register shortcuts
       if (Platform.isWindows) {
         await _registerGlobalWinZShortcut();
       }
@@ -83,12 +92,41 @@ Future<void> _registerGlobalWinZShortcut() async {
 class DriveNotesPdfApp extends StatefulWidget {
   const DriveNotesPdfApp({super.key});
 
+  static void exitApp() {
+    exit(0);
+  }
+
   @override
   State<DriveNotesPdfApp> createState() => _DriveNotesPdfAppState();
 }
 
-class _DriveNotesPdfAppState extends State<DriveNotesPdfApp> {
+class _DriveNotesPdfAppState extends State<DriveNotesPdfApp> with WindowListener {
   final ThemeMode _themeMode = ThemeMode.system;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      windowManager.addListener(this);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      windowManager.removeListener(this);
+    }
+    super.dispose();
+  }
+
+  @override
+  void onWindowClose() async {
+    // When user clicks 'X', hide the window to background (Sticky Notes style)
+    // Win + Z continues to summon the app instantly in <10ms!
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      await windowManager.hide();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

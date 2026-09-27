@@ -13,7 +13,7 @@ static HWND g_flutter_hwnd = NULL;
 static void ForceForegroundWindow(HWND hwnd) {
   if (!hwnd || !::IsWindow(hwnd)) return;
 
-  // Restore if minimized
+  // Restore if minimized or hidden
   if (::IsIconic(hwnd)) {
     ::ShowWindow(hwnd, SW_RESTORE);
   } else {
@@ -73,8 +73,8 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
   return ::CallNextHookEx(g_keyboard_hook, nCode, wParam, lParam);
 }
 
-FlutterWindow::FlutterWindow(const flutter::DartProject& project)
-    : project_(project) {}
+FlutterWindow::FlutterWindow(const flutter::DartProject& project, bool start_hidden)
+    : project_(project), start_hidden_(start_hidden) {}
 
 FlutterWindow::~FlutterWindow() {}
 
@@ -105,9 +105,11 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
-  });
+  if (!start_hidden_) {
+    flutter_controller_->engine()->SetNextFrameCallback([&]() {
+      this->Show();
+    });
+  }
 
   // Flutter can complete the first frame before the "show window" callback is
   // registered. The following call ensures a frame is pending to ensure the
@@ -137,6 +139,13 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               LPARAM const lparam) noexcept {
   if (message == WM_USER_SUMMON_APP) {
     ForceForegroundWindow(hwnd);
+    return 0;
+  }
+
+  // Intercept WM_CLOSE so clicking 'X' hides window to background (Sticky Notes style)
+  // Win + Z continues to work instantly in <10ms!
+  if (message == WM_CLOSE) {
+    ::ShowWindow(hwnd, SW_HIDE);
     return 0;
   }
 

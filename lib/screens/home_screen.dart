@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:intl/intl.dart';
 import '../models/note_model.dart';
 import '../services/notes_storage_service.dart';
@@ -294,6 +296,46 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.folder_open, size: 18),
             label: const Text('Open PDF'),
             onPressed: _openPdfFilePicker,
+          ),
+
+          const SizedBox(width: 8),
+
+          // Window & App Options Menu
+          PopupMenuButton<String>(
+            tooltip: 'App Options',
+            icon: const Icon(Icons.more_vert, size: 20),
+            onSelected: (val) {
+              if (val == 'hide') {
+                if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+                  windowManager.hide();
+                }
+              } else if (val == 'exit') {
+                exit(0);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'hide',
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility_off_outlined, size: 18),
+                    SizedBox(width: 10),
+                    Text('Hide Window (Press Win+Z to summon)'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'exit',
+                child: Row(
+                  children: [
+                    Icon(Icons.power_settings_new, color: Colors.red, size: 18),
+                    SizedBox(width: 10),
+                    Text('Exit Application Completely', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
