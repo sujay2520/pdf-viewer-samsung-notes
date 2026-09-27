@@ -12,7 +12,11 @@
 class FlutterWindow : public Win32Window {
  public:
   // Creates a new FlutterWindow hosting a Flutter view running |project|.
-  explicit FlutterWindow(const flutter::DartProject& project);
+  // is_quicknote: If true, this is a small sticky note window (no keyboard hook, closes on X).
+  // start_hidden: If true, the window starts hidden in background.
+  explicit FlutterWindow(const flutter::DartProject& project,
+                         bool is_quicknote = false,
+                         bool start_hidden = false);
   virtual ~FlutterWindow();
 
  protected:
@@ -25,6 +29,12 @@ class FlutterWindow : public Win32Window {
  private:
   // The project to run.
   flutter::DartProject project_;
+
+  // Whether this is a quick sticky note window
+  bool is_quicknote_;
+
+  // Whether to start hidden in background
+  bool start_hidden_;
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;

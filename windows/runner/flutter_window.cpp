@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <windows.h>
+#include <shellapi.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -52,21 +53,31 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
                           ((::GetAsyncKeyState(VK_RWIN) & 0x8000) != 0) ||
                           (::GetKeyState(VK_LWIN) < 0) ||
                           (::GetKeyState(VK_RWIN) < 0);
-        bool ctrlPressed = ((::GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) ||
-                           (::GetKeyState(VK_CONTROL) < 0);
         bool altPressed = ((::GetAsyncKeyState(VK_MENU) & 0x8000) != 0) ||
                           (::GetKeyState(VK_MENU) < 0);
+        bool ctrlPressed = ((::GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) ||
+                           (::GetKeyState(VK_CONTROL) < 0);
 
-        // Catch Win + Z or Ctrl + Alt + Z
-        if (winPressed || (ctrlPressed && altPressed)) {
+        if (winPressed && altPressed) {
+          // Win + Alt + Z → Summon the main app window
           HWND target = g_flutter_hwnd;
-          if (!target || !::IsWindow(target)) {
-            target = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", nullptr);
-          }
           if (target && ::IsWindow(target)) {
             ::PostMessage(target, WM_USER_SUMMON_APP, 0, 0);
-            return 1; // Intercept key and prevent Windows Snap Layouts flyout
           }
+          return 1;
+        } else if (winPressed && !altPressed && !ctrlPressed) {
+          // Win + Z → Launch a new quick sticky note (separate process)
+          wchar_t exePath[MAX_PATH];
+          ::GetModuleFileName(NULL, exePath, MAX_PATH);
+          ::ShellExecute(NULL, L"open", exePath, L"--quicknote", NULL, SW_SHOWNORMAL);
+          return 1;
+        } else if (ctrlPressed && altPressed) {
+          // Ctrl + Alt + Z → Summon the main app (fallback)
+          HWND target = g_flutter_hwnd;
+          if (target && ::IsWindow(target)) {
+            ::PostMessage(target, WM_USER_SUMMON_APP, 0, 0);
+          }
+          return 1;
         }
       }
     }
@@ -74,8 +85,9 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
   return ::CallNextHookEx(g_keyboard_hook, nCode, wParam, lParam);
 }
 
-FlutterWindow::FlutterWindow(const flutter::DartProject& project)
-    : project_(project) {}
+FlutterWindow::FlutterWindow(const flutter::DartProject& project,
+                             bool is_quicknote, bool start_hidden)
+    : project_(project), is_quicknote_(is_quicknote), start_hidden_(start_hidden) {}
 
 FlutterWindow::~FlutterWindow() {}
 
@@ -84,13 +96,16 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
 
-  g_flutter_hwnd = GetHandle();
-  if (!g_keyboard_hook) {
-    g_keyboard_hook = ::SetWindowsHookEx(
-        WH_KEYBOARD_LL,
-        LowLevelKeyboardProc,
-        ::GetModuleHandle(nullptr),
-        0);
+  // Only install global keyboard hook for the main app, not quicknotes
+  if (!is_quicknote_) {
+    g_flutter_hwnd = GetHandle();
+    if (!g_keyboard_hook) {
+      g_keyboard_hook = ::SetWindowsHookEx(
+          WH_KEYBOARD_LL,
+          LowLevelKeyboardProc,
+          ::GetModuleHandle(nullptr),
+          0);
+    }
   }
 
   RECT frame = GetClientArea();
@@ -106,9 +121,11 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
-  });
+  if (!start_hidden_) {
+    flutter_controller_->engine()->SetNextFrameCallback([&]() {
+      this->Show();
+    });
+  }
 
   // Flutter can complete the first frame before the "show window" callback is
   // registered. The following call ensures a frame is pending to ensure the
@@ -119,11 +136,14 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
-  if (g_keyboard_hook) {
-    ::UnhookWindowsHookEx(g_keyboard_hook);
-    g_keyboard_hook = NULL;
+  // Only unhook keyboard for the main app process
+  if (!is_quicknote_) {
+    if (g_keyboard_hook) {
+      ::UnhookWindowsHookEx(g_keyboard_hook);
+      g_keyboard_hook = NULL;
+    }
+    g_flutter_hwnd = NULL;
   }
-  g_flutter_hwnd = NULL;
 
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
@@ -136,15 +156,22 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
-  if (message == WM_USER_SUMMON_APP) {
+  // Only the main app handles summon messages
+  if (!is_quicknote_ && message == WM_USER_SUMMON_APP) {
     ForceForegroundWindow(hwnd);
     return 0;
   }
 
-  // Intercept WM_CLOSE so clicking 'X' hides window to background (Sticky Notes style)
-  // Win + Z continues to work instantly in <10ms!
+  // WM_CLOSE behavior differs:
   if (message == WM_CLOSE) {
-    ::ShowWindow(hwnd, SW_HIDE);
+    if (is_quicknote_) {
+      // Quicknotes: Let Flutter's onWindowClose handler save, then destroy
+      // The Dart side calls exit(0) after saving
+      ::DestroyWindow(hwnd);
+    } else {
+      // Main app: Hide to background (Sticky Notes style)
+      ::ShowWindow(hwnd, SW_HIDE);
+    }
     return 0;
   }
 

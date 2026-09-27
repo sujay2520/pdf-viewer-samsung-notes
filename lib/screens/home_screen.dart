@@ -261,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icon(Icons.keyboard, size: 15, color: theme.colorScheme.primary),
                   const SizedBox(width: 6),
                   Text(
-                    'Win + Z',
+                    'Win+Z Note',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -320,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Icon(Icons.visibility_off_outlined, size: 18),
                     SizedBox(width: 10),
-                    Text('Hide Window (Press Win+Z to summon)'),
+                    Text('Hide Window (Win+Alt+Z to summon)'),
                   ],
                 ),
               ),
@@ -744,7 +744,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           (i) => Divider(
                             height: 1,
                             thickness: 0.8,
-                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.blueGrey.shade100,
+                            color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.blueGrey.shade100,
                           ),
                         ),
                       ),

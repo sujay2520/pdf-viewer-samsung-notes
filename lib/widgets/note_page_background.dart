@@ -37,7 +37,7 @@ class _TemplatePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final ruleColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
+        ? Colors.white.withValues(alpha: 0.18)
         : const Color(0xFFE2E8F0);
     final marginColor = isDark
         ? Colors.red.shade300.withValues(alpha: 0.3)

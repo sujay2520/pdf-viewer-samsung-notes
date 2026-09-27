@@ -6,14 +6,40 @@ import 'package:window_manager/window_manager.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 import 'screens/home_screen.dart';
+import 'screens/quick_note_screen.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Desktop Window & Global Hotkey initialization
+  final isQuickNote = args.contains('--quicknote');
+  final isBackground = args.contains('--background') || args.contains('--hidden');
+
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     try {
       await windowManager.ensureInitialized();
+
+      if (isQuickNote) {
+        // ── Quick Note Mode: Small dark sticky note ──
+        const quickNoteOptions = WindowOptions(
+          size: Size(380, 440),
+          minimumSize: Size(280, 300),
+          center: false,
+          backgroundColor: Color(0xFF2D2D30),
+          skipTaskbar: false,
+          titleBarStyle: TitleBarStyle.hidden,
+          title: 'Quick Note',
+        );
+
+        windowManager.waitUntilReadyToShow(quickNoteOptions, () async {
+          await windowManager.show();
+          await windowManager.focus();
+        });
+
+        runApp(const QuickNoteApp());
+        return;
+      }
+
+      // ── Full App Mode ──
       const windowOptions = WindowOptions(
         size: Size(1280, 800),
         minimumSize: Size(450, 600),
@@ -23,17 +49,19 @@ void main() async {
         title: 'Drive Notes & PDF',
       );
 
-      // Prevent closing so clicking 'X' hides to background for instant Win + Z summon!
+      // Prevent closing so clicking 'X' hides to background
       await windowManager.setPreventClose(true);
 
       windowManager.waitUntilReadyToShow(windowOptions, () async {
-        await windowManager.show();
-        await windowManager.focus();
+        if (!isBackground) {
+          await windowManager.show();
+          await windowManager.focus();
+        }
       });
 
-      // Register shortcuts
+      // Register shortcuts (Dart-level fallback, C++ hook is primary)
       if (Platform.isWindows) {
-        await _registerGlobalWinZShortcut();
+        await _registerGlobalShortcuts();
       }
     } catch (e) {
       debugPrint('Window or hotkey init warning: $e');
@@ -43,27 +71,11 @@ void main() async {
   runApp(const DriveNotesPdfApp());
 }
 
-Future<void> _registerGlobalWinZShortcut() async {
+Future<void> _registerGlobalShortcuts() async {
   try {
     await hotKeyManager.unregisterAll();
 
-    // 1. Register Win + Z via hotkey_manager
-    try {
-      final winZHotKey = HotKey(
-        key: PhysicalKeyboardKey.keyZ,
-        modifiers: [HotKeyModifier.meta],
-        scope: HotKeyScope.system,
-      );
-      await hotKeyManager.register(
-        winZHotKey,
-        keyDownHandler: (hotKey) async {
-          await windowManager.show();
-          await windowManager.focus();
-        },
-      );
-    } catch (_) {}
-
-    // 2. Register Ctrl + Alt + Z as an alternate global shortcut
+    // Ctrl + Alt + Z as fallback to summon main app
     try {
       final ctrlAltZHotKey = HotKey(
         key: PhysicalKeyboardKey.keyZ,
@@ -116,7 +128,6 @@ class _DriveNotesPdfAppState extends State<DriveNotesPdfApp> with WindowListener
   @override
   void onWindowClose() async {
     // When user clicks 'X', hide the window to background (Sticky Notes style)
-    // Win + Z continues to summon the app instantly in <10ms!
     if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       await windowManager.hide();
     }
