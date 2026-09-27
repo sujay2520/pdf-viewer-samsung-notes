@@ -15,16 +15,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     CreateAndAttachConsole();
   }
 
-  // Single Instance Protection:
-  // If an instance is already running (e.g. hidden in background),
-  // summon it to the foreground immediately instead of opening a duplicate.
-  HANDLE hMutex = ::CreateMutex(nullptr, TRUE, L"DriveNotesAndPdfSingleInstanceMutex");
-  if (GetLastError() == ERROR_ALREADY_EXISTS) {
-    HWND existingHwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", nullptr);
-    if (existingHwnd && ::IsWindow(existingHwnd)) {
-      ::PostMessage(existingHwnd, WM_USER_SUMMON_APP, 0, 0);
-    }
-    if (hMutex) ::CloseHandle(hMutex);
+  // Check if an instance is already running on the current desktop.
+  // If an existing window is found, summon it to the foreground instead of opening a duplicate.
+  HWND existingHwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", nullptr);
+  if (existingHwnd && ::IsWindow(existingHwnd)) {
+    ::PostMessage(existingHwnd, WM_USER_SUMMON_APP, 0, 0);
     return EXIT_SUCCESS;
   }
 
@@ -39,18 +34,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
-  bool start_hidden = false;
-  if (command_line && (wcsstr(command_line, L"--background") != nullptr ||
-                       wcsstr(command_line, L"--hidden") != nullptr ||
-                       wcsstr(command_line, L"--minimized") != nullptr)) {
-    start_hidden = true;
-  }
-
-  FlutterWindow window(project, start_hidden);
+  FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"pdf_viewer_pro", origin, size)) {
-    if (hMutex) ::CloseHandle(hMutex);
+  if (!window.Create(L"Drive Notes & PDF", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
@@ -62,6 +49,5 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
 
   ::CoUninitialize();
-  if (hMutex) ::CloseHandle(hMutex);
   return EXIT_SUCCESS;
 }

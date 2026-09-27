@@ -7,12 +7,8 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 
 import 'screens/home_screen.dart';
 
-void main(List<String> args) async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  final isBackground = args.contains('--background') ||
-      args.contains('--hidden') ||
-      args.contains('--minimized');
 
   // Desktop Window & Global Hotkey initialization
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
@@ -22,7 +18,7 @@ void main(List<String> args) async {
         size: Size(1280, 800),
         minimumSize: Size(450, 600),
         center: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         skipTaskbar: false,
         title: 'Drive Notes & PDF',
       );
@@ -31,10 +27,8 @@ void main(List<String> args) async {
       await windowManager.setPreventClose(true);
 
       windowManager.waitUntilReadyToShow(windowOptions, () async {
-        if (!isBackground) {
-          await windowManager.show();
-          await windowManager.focus();
-        }
+        await windowManager.show();
+        await windowManager.focus();
       });
 
       // Register shortcuts

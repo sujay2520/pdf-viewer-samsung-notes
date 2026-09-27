@@ -19,6 +19,7 @@ static void ForceForegroundWindow(HWND hwnd) {
   } else {
     ::ShowWindow(hwnd, SW_SHOW);
   }
+  ::SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 
   // Bypass Windows LockSetForegroundWindow restriction using Alt-key event
   ::keybd_event(VK_MENU, 0, 0, 0);
@@ -73,8 +74,8 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lP
   return ::CallNextHookEx(g_keyboard_hook, nCode, wParam, lParam);
 }
 
-FlutterWindow::FlutterWindow(const flutter::DartProject& project, bool start_hidden)
-    : project_(project), start_hidden_(start_hidden) {}
+FlutterWindow::FlutterWindow(const flutter::DartProject& project)
+    : project_(project) {}
 
 FlutterWindow::~FlutterWindow() {}
 
@@ -105,11 +106,9 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  if (!start_hidden_) {
-    flutter_controller_->engine()->SetNextFrameCallback([&]() {
-      this->Show();
-    });
-  }
+  flutter_controller_->engine()->SetNextFrameCallback([&]() {
+    this->Show();
+  });
 
   // Flutter can complete the first frame before the "show window" callback is
   // registered. The following call ensures a frame is pending to ensure the
