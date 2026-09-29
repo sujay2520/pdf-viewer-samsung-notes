@@ -36,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener {
   bool _isGridView = true;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  DateTime _lastRefreshTime = DateTime.now();
 
   @override
   void initState() {
@@ -57,6 +58,9 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener {
   }
 
   Future<void> _refreshDataQuietly() async {
+    final now = DateTime.now();
+    if (now.difference(_lastRefreshTime).inMilliseconds < 800) return;
+    _lastRefreshTime = now;
     final notes = await NotesStorageService.instance.loadAllNotes();
     final pdfs = await NotesStorageService.instance.loadRecentPdfs();
     if (mounted) {
@@ -735,64 +739,72 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener {
     final firstPage = note.firstPage;
     final previewText = firstPage.textContent.trim();
     final timeStr = DateFormat('MMM d, h:mm a').format(note.updatedAt);
+    final cardBg = isDark ? const Color(0xFF1E1F22) : Colors.white;
+    final paperBg = isDark ? const Color(0xFF25262B) : (firstPage.isDark ? const Color(0xFF25262B) : const Color(0xFFFAFBFC));
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08);
 
     return Material(
-      color: isDark ? const Color(0xFF1E1F22) : Colors.white,
+      color: cardBg,
       elevation: 2,
       shadowColor: Colors.black12,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _openNoteEditor(note),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Preview: Notebook paper style with ruled lines
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                decoration: BoxDecoration(
-                  color: firstPage.isDark ? const Color(0xFF25262B) : const Color(0xFFFAFBFC),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: InkWell(
+          onTap: () => _openNoteEditor(note),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Preview: Notebook paper style with ruled lines
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                  decoration: BoxDecoration(
+                    color: paperBg,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06),
+                      ),
                     ),
                   ),
-                ),
-                child: Stack(
-                  children: [
-                    // Subtle background ruled lines preview
-                    Positioned.fill(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(
-                          5,
-                          (i) => Divider(
-                            height: 1,
-                            thickness: 0.8,
-                            color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.blueGrey.shade100,
+                  child: Stack(
+                    children: [
+                      // Subtle background ruled lines preview
+                      Positioned.fill(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: List.generate(
+                            5,
+                            (i) => Divider(
+                              height: 1,
+                              thickness: 0.8,
+                              color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.blueGrey.shade100,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    // Typed note snippet
-                    Positioned.fill(
-                      child: Text(
-                        previewText.isNotEmpty ? previewText : 'Tap to start typing on lined paper...',
-                        style: TextStyle(
-                          fontSize: 12,
-                          height: 1.6,
-                          color: previewText.isNotEmpty
-                              ? (firstPage.isDark ? Colors.white70 : Colors.black87)
-                              : (firstPage.isDark ? Colors.white30 : Colors.black38),
-                          fontStyle: previewText.isEmpty ? FontStyle.italic : FontStyle.normal,
+                      // Typed note snippet
+                      Positioned.fill(
+                        child: Text(
+                          previewText.isNotEmpty ? previewText : 'Tap to start typing on lined paper...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.6,
+                            color: previewText.isNotEmpty
+                                ? (isDark || firstPage.isDark ? Colors.white70 : Colors.black87)
+                                : (isDark || firstPage.isDark ? Colors.white30 : Colors.black38),
+                            fontStyle: previewText.isEmpty ? FontStyle.italic : FontStyle.normal,
+                          ),
+                          maxLines: 5,
+                          overflow: TextOverflow.fade,
                         ),
-                        maxLines: 5,
-                        overflow: TextOverflow.fade,
                       ),
-                    ),
 
                     // Template pill badge in top right
                     Positioned(
@@ -897,6 +909,7 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -905,6 +918,7 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener {
     final file = File(pdf.path);
     final exists = file.existsSync();
     final timeStr = DateFormat('MMM d, h:mm a').format(pdf.lastOpened);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08);
 
     return Material(
       color: isDark ? const Color(0xFF1E1F22) : Colors.white,
@@ -912,8 +926,13 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener {
       shadowColor: Colors.black12,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: InkWell(
+          onTap: () {
           if (exists) {
             _openPdfViewer(file, initialTitle: pdf.title);
           } else {
@@ -1040,6 +1059,7 @@ class _HomeScreenState extends State<HomeScreen> with WindowListener {
           ],
         ),
       ),
+    ),
     );
   }
 

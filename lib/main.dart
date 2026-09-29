@@ -46,7 +46,7 @@ void main(List<String> args) async {
         size: Size(1280, 800),
         minimumSize: Size(450, 600),
         center: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFF141517),
         skipTaskbar: false,
         title: 'Drive Notes & PDF',
       );

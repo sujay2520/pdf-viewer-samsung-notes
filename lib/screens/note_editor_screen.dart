@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/note_model.dart';
@@ -24,6 +25,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late final TextEditingController _titleController;
   late final TextEditingController _textEditingController;
   final FocusNode _textFocusNode = FocusNode();
+  Timer? _saveDebounceTimer;
 
   // Note Studio Tools State
   bool _isTypingMode = true; // Enabled by default so user can immediately type on lines!
@@ -44,13 +46,23 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   void dispose() {
+    _saveDebounceTimer?.cancel();
+    _saveCurrentNote();
     _titleController.dispose();
     _textEditingController.dispose();
     _textFocusNode.dispose();
     super.dispose();
   }
 
+  void _debounceSave() {
+    _saveDebounceTimer?.cancel();
+    _saveDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _saveCurrentNote();
+    });
+  }
+
   void _saveCurrentNote() {
+    _saveDebounceTimer?.cancel();
     _currentPage.textContent = _textEditingController.text;
     _note.title = _titleController.text.trim().isNotEmpty
         ? _titleController.text.trim()
@@ -106,7 +118,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               border: InputBorder.none,
               hintText: 'Note Title...',
             ),
-            onChanged: (val) => _saveCurrentNote(),
+            onChanged: (val) => _debounceSave(),
           ),
           actions: [
             // Mode Indicator / Toggle: Typing vs Drawing
@@ -286,7 +298,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                   contentPadding: EdgeInsets.zero,
                                   isDense: true,
                                 ),
-                                onChanged: (val) => _saveCurrentNote(),
+                                onChanged: (val) => _debounceSave(),
                               ),
                             ),
                           ),

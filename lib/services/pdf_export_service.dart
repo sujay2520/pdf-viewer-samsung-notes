@@ -8,7 +8,7 @@ class PdfExportService {
   static final PdfExportService instance = PdfExportService._();
   PdfExportService._();
 
-  /// Converts a NoteDocument into a PDF document and saves it
+  /// Converts a NoteDocument into a PDF document with full multi-page support
   Future<File> exportNoteToPdf(NoteDocument note, {String? targetPath, bool exportDarkMode = false}) async {
     final doc = pw.Document(
       title: note.title,
@@ -22,55 +22,115 @@ class PdfExportService {
       final lineColor = isDark ? PdfColors.grey700 : PdfColors.blueGrey100;
 
       doc.addPage(
-        pw.Page(
+        pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(24),
-          build: (pw.Context context) {
+          margin: const pw.EdgeInsets.fromLTRB(40, 48, 40, 48),
+          pageTheme: pw.PageTheme(
+            pageFormat: PdfPageFormat.a4,
+            margin: const pw.EdgeInsets.fromLTRB(40, 48, 40, 48),
+            buildBackground: (pw.Context context) {
+              return pw.Container(
+                color: bgColor,
+                child: _buildPdfTemplateBackground(page.template, lineColor, isDark),
+              );
+            },
+          ),
+          header: (pw.Context context) {
             return pw.Container(
-              color: bgColor,
-              child: pw.Stack(
+              margin: const pw.EdgeInsets.only(bottom: 12),
+              padding: const pw.EdgeInsets.only(bottom: 6),
+              decoration: pw.BoxDecoration(
+                border: pw.Border(
+                  bottom: pw.BorderSide(
+                    color: isDark ? PdfColors.grey700 : PdfColors.grey300,
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  // 1. Template Background (Ruled, Grid, Cornell, Blank)
-                  _buildPdfTemplateBackground(page.template, lineColor, isDark),
-
-                  // 2. Text content
-                  if (page.textContent.isNotEmpty)
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(20),
-                      child: pw.Text(
-                        page.textContent,
-                        style: pw.TextStyle(
-                          color: textColor,
-                          fontSize: 14,
-                          lineSpacing: 8,
-                        ),
+                  pw.Expanded(
+                    child: pw.Text(
+                      note.title,
+                      style: pw.TextStyle(
+                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
                       ),
+                      maxLines: 1,
+                      overflow: pw.TextOverflow.clip,
                     ),
-
-                  // 3. Annotations overlay (Text notes & drawings)
-                  ...page.annotations.textAnnotations.map((t) {
-                    return pw.Positioned(
-                      left: t.position.dx,
-                      top: t.position.dy,
-                      child: pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColor.fromInt(t.backgroundColor.toARGB32()),
-                          borderRadius: pw.BorderRadius.circular(4),
-                        ),
-                        child: pw.Text(
-                          t.text,
-                          style: pw.TextStyle(
-                            color: PdfColor.fromInt(t.color.toARGB32()),
-                            fontSize: t.fontSize,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
+                  ),
+                  pw.Text(
+                    'Drive Notes & PDF',
+                    style: pw.TextStyle(
+                      color: isDark ? PdfColors.grey400 : PdfColors.grey600,
+                      fontSize: 9,
+                    ),
+                  ),
                 ],
               ),
             );
+          },
+          footer: (pw.Context context) {
+            return pw.Container(
+              margin: const pw.EdgeInsets.only(top: 12),
+              alignment: pw.Alignment.centerRight,
+              child: pw.Text(
+                'Page ${context.pageNumber} of ${context.pagesCount}',
+                style: pw.TextStyle(
+                  color: isDark ? PdfColors.grey400 : PdfColors.grey600,
+                  fontSize: 9,
+                ),
+              ),
+            );
+          },
+          build: (pw.Context context) {
+            final widgets = <pw.Widget>[];
+
+            // 1. Multi-line text content — automatically flows across all pages!
+            if (page.textContent.isNotEmpty) {
+              final lines = page.textContent.split('\n');
+              for (final line in lines) {
+                widgets.add(
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(bottom: 4),
+                    child: pw.Text(
+                      line.isEmpty ? ' ' : line,
+                      style: pw.TextStyle(
+                        color: textColor,
+                        fontSize: 11,
+                        lineSpacing: 4,
+                      ),
+                    ),
+                  ),
+                );
+              }
+            }
+
+            // 2. Text annotations overlay
+            for (final t in page.annotations.textAnnotations) {
+              widgets.add(
+                pw.Container(
+                  margin: const pw.EdgeInsets.only(top: 8, bottom: 8),
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColor.fromInt(t.backgroundColor.toARGB32()),
+                    borderRadius: pw.BorderRadius.circular(4),
+                  ),
+                  child: pw.Text(
+                    t.text,
+                    style: pw.TextStyle(
+                      color: PdfColor.fromInt(t.color.toARGB32()),
+                      fontSize: t.fontSize,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return widgets;
           },
         ),
       );
@@ -97,7 +157,7 @@ class PdfExportService {
 
       case NotePageTemplate.ruled:
         return pw.CustomPaint(
-          size: const PdfPoint(500, 750),
+          size: const PdfPoint(595, 842),
           painter: (PdfGraphics canvas, PdfPoint size) {
             canvas
               ..setColor(lineColor)
@@ -118,7 +178,7 @@ class PdfExportService {
 
       case NotePageTemplate.grid:
         return pw.CustomPaint(
-          size: const PdfPoint(500, 750),
+          size: const PdfPoint(595, 842),
           painter: (PdfGraphics canvas, PdfPoint size) {
             canvas
               ..setColor(lineColor)
@@ -135,7 +195,7 @@ class PdfExportService {
 
       case NotePageTemplate.dotGrid:
         return pw.CustomPaint(
-          size: const PdfPoint(500, 750),
+          size: const PdfPoint(595, 842),
           painter: (PdfGraphics canvas, PdfPoint size) {
             canvas.setColor(lineColor);
             for (double x = 25; x < size.x - 25; x += 22) {
@@ -149,7 +209,7 @@ class PdfExportService {
 
       case NotePageTemplate.cornell:
         return pw.CustomPaint(
-          size: const PdfPoint(500, 750),
+          size: const PdfPoint(595, 842),
           painter: (PdfGraphics canvas, PdfPoint size) {
             canvas
               ..setColor(lineColor)

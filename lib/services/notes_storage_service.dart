@@ -39,11 +39,13 @@ class NotesStorageService {
 
   List<NoteDocument> _cachedNotes = [];
   List<RecentPdfItem> _cachedRecentPdfs = [];
+  Directory? _cachedNotesDir;
 
   List<NoteDocument> get notes => List.unmodifiable(_cachedNotes);
   List<RecentPdfItem> get recentPdfs => List.unmodifiable(_cachedRecentPdfs);
 
   Future<Directory> get _notesDirectory async {
+    if (_cachedNotesDir != null) return _cachedNotesDir!;
     final appDir = await getApplicationDocumentsDirectory();
     final newDir = Directory('${appDir.path}/DriveNotesPro');
     final oldDir = Directory('${appDir.path}/SamsungNotesPro');
@@ -60,6 +62,7 @@ class NotesStorageService {
     if (!await newDir.exists()) {
       await newDir.create(recursive: true);
     }
+    _cachedNotesDir = newDir;
     return newDir;
   }
 
@@ -108,7 +111,7 @@ class NotesStorageService {
       note.updatedAt = DateTime.now();
       final dir = await _notesDirectory;
       final file = File('${dir.path}/${note.id}.json');
-      final jsonString = const JsonEncoder.withIndent('  ').convert(note.toJson());
+      final jsonString = jsonEncode(note.toJson());
       await file.writeAsString(jsonString, flush: true);
 
       final index = _cachedNotes.indexWhere((n) => n.id == note.id);
@@ -198,6 +201,7 @@ class NotesStorageService {
         NotePage(
           pageNumber: 1,
           template: NotePageTemplate.ruled,
+          isDark: true,
           textContent: 'Welcome to your modern cross-platform PDF & Notes workstation!\n\n'
               'Features included:\n'
               '• Press Win + Z anywhere in Windows to instantly summon the app.\n'
@@ -231,6 +235,7 @@ class NotesStorageService {
         NotePage(
           pageNumber: 1,
           template: NotePageTemplate.grid,
+          isDark: true,
           textContent: 'Graph paper template for wireframing, architecture diagrams, and math.',
         ),
       ],

@@ -273,16 +273,23 @@ void Win32Window::OnDestroy() {
 }
 
 void Win32Window::UpdateTheme(HWND const window) {
-  DWORD light_mode;
-  DWORD light_mode_size = sizeof(light_mode);
-  LSTATUS result = RegGetValue(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,
-                               kGetPreferredBrightnessRegValue,
-                               RRF_RT_REG_DWORD, nullptr, &light_mode,
-                               &light_mode_size);
+  // 1. Enable immersive dark mode (attribute 20 for Win11/Win10 20H1+, 19 for older Win10)
+  BOOL enable_dark_mode = TRUE;
+  DwmSetWindowAttribute(window, 20, &enable_dark_mode, sizeof(enable_dark_mode));
+  DwmSetWindowAttribute(window, 19, &enable_dark_mode, sizeof(enable_dark_mode));
 
-  if (result == ERROR_SUCCESS) {
-    BOOL enable_dark_mode = light_mode == 0;
-    DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
-                          &enable_dark_mode, sizeof(enable_dark_mode));
-  }
+  // 2. Set dark caption background color (0x141517 matching dark theme)
+  // DWMWA_CAPTION_COLOR = 35
+  COLORREF caption_color = RGB(0x14, 0x15, 0x17);
+  DwmSetWindowAttribute(window, 35, &caption_color, sizeof(caption_color));
+
+  // 3. Set title bar text color to white
+  // DWMWA_TEXT_COLOR = 36
+  COLORREF text_color = RGB(0xFF, 0xFF, 0xFF);
+  DwmSetWindowAttribute(window, 36, &text_color, sizeof(text_color));
+
+  // 4. Set dark border color to eliminate white borders
+  // DWMWA_BORDER_COLOR = 34
+  COLORREF border_color = RGB(0x2D, 0x2D, 0x30);
+  DwmSetWindowAttribute(window, 34, &border_color, sizeof(border_color));
 }
